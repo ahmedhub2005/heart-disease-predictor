@@ -1,0 +1,6 @@
+__pycache__/
+numpy.cpython-311/
+.ipynb_checkpoints/
+.venv/
+before Deep learning/
+notebooks/
