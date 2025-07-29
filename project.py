@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 
 # تحميل النموذج
-data = pickle.load(open(r'D:\python for data science\heart_disease.sav','rb'))
+data = pickle.load(open(r'heart_disease.sav','rb'))
 
 st.title('Heart Disease Prediction')
 st.info('Easy App for Heart Prediction Disease')
