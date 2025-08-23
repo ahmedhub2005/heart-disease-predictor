@@ -9,19 +9,19 @@ st.info('Easy App for Heart Prediction Disease')
 
 
 st.sidebar.header("Feature Selection")
-age = st.text_input('age')
-sex = st.text_input('sex')
-cp = st.text_input('cp')
-trestbps = st.text_input('trestbps')
-chol = st.text_input('chol')
-fbs = st.text_input('fbs')
-restecg = st.text_input('restecg')
-thalach = st.text_input('thalach')
-exang = st.text_input('exang')
-oldpeak = st.text_input('oldpeak')
-slope = st.text_input('slope')
-ca = st.text_input('ca')
-thal = st.text_input('thal')
+age = st.text_input('Age')
+sex = st.text_input('Sex')
+cp = st.text_input('Cp')
+trestbps = st.text_input('Trestbps')
+chol = st.text_input('Chol')
+fbs = st.text_input('Fbs')
+restecg = st.text_input('Restecg')
+thalach = st.text_input('Thalach')
+exang = st.text_input('Exang')
+oldpeak = st.text_input('Oldpeak')
+slope = st.text_input('Slope')
+ca = st.text_input('Ca')
+thal = st.text_input('Thal')
 
 
 con = st.sidebar.button("Confirm")
@@ -57,6 +57,7 @@ if con:
 
         except Exception as e:
             st.sidebar.error(f"An error occurred during prediction: {e}")
+
 
 
 
