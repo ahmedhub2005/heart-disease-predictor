@@ -4,8 +4,8 @@ import streamlit as st
 
 data = pickle.load(open(r'heart_disease_V2.sav','rb'))
 
-st.title('Heart Disease Prediction')
-st.info('Easy App for Heart Prediction Disease')
+st.title('Easy Heart Disease Prediction App')
+st.info('A simple and intelligent tool to help predict the risk of heart disease using machine learning.')
 
 
 st.sidebar.header("Feature Selection")
@@ -62,3 +62,4 @@ if con:
 
 
     
+
