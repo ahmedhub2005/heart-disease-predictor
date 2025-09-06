@@ -363,9 +363,15 @@ with tab3:
         st.session_state["fig_ecg"].savefig(ecg_path, bbox_inches="tight")
 
         # Radar chart (plotly → bytes → png file)
-        img_bytes_radar = st.session_state["fig_radar"].to_image(format="png", scale=2)
-        with open(radar_path, "wb") as f:
-            f.write(img_bytes_radar)
+        pdf.set_font("Helvetica", "B", 14)
+        pdf.cell(0, 10, "Radar Chart Indicators", ln=True)
+         for trace in st.session_state["fig_radar"].data:
+                name = trace.name
+                values = trace.r
+                pdf.set_font("Helvetica", "", 12)
+                pdf.multi_cell(0, 8, f"{name}: {values}")
+
+
 
         # Gauge chart (plotly → bytes → png file)
         img_bytes_gauge = st.session_state["fig_gauge"].to_image(format="png", scale=2)
@@ -544,6 +550,7 @@ with tab3:
 
 
     
+
 
 
 
