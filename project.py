@@ -360,7 +360,10 @@ with tab3:
             gauge_path = f"temp_gauge_{uid}.png"
 
             st.session_state["fig_ecg"].savefig(ecg_path, bbox_inches="tight")
-            st.session_state["fig_radar"].write_image(radar_path, scale=2)
+           img_bytes = st.session_state["fig_radar"].to_image(format="png", scale=2)
+with open(radar_path, "wb") as f:
+    f.write(img_bytes)
+
             st.session_state["fig_gauge"].write_image(gauge_path, scale=2)
 
             pdf = FPDF()
@@ -533,5 +536,6 @@ with tab3:
 
 
     
+
 
 
