@@ -3,4 +3,5 @@ pandas
 scikit-learn
 matplotlib
 plotly
+kaleido
 fpdf
