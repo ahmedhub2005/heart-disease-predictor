@@ -365,11 +365,11 @@ with tab3:
         # Radar chart (plotly → bytes → png file)
         pdf.set_font("Helvetica", "B", 14)
         pdf.cell(0, 10, "Radar Chart Indicators", ln=True)
-         for trace in st.session_state["fig_radar"].data:
-                name = trace.name
-                values = trace.r
-                pdf.set_font("Helvetica", "", 12)
-                pdf.multi_cell(0, 8, f"{name}: {values}")
+        for trace in st.session_state["fig_radar"].data:
+            name = trace.name
+            values = trace.r
+            pdf.set_font("Helvetica", "", 12)
+            pdf.multi_cell(0, 8, f"{name}: {values}")
 
 
 
@@ -550,6 +550,7 @@ with tab3:
 
 
     
+
 
 
 
