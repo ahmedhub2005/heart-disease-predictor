@@ -354,6 +354,7 @@ with tab3:
             import uuid
             import os
             from fpdf import FPDF
+            import plotly.io as pio
 
             # --- Helper function to clean text ---
             def safe_ascii(text):
@@ -363,22 +364,26 @@ with tab3:
             # --- Temporary images with unique names ---
             uid = str(uuid.uuid4())[:8]
             ecg_path = f"temp_ecg_{uid}.png"
+            radar_path = f"temp_radar_{uid}.txt"
             gauge_path = f"temp_gauge_{uid}.png"
 
             # ECG (matplotlib)
             st.session_state["fig_ecg"].savefig(ecg_path, bbox_inches="tight")
 
-            # Radar chart (saved as text indicators only)
+            # Radar chart (saved as text only to avoid image conversion issues)
             radar_text = []
             for trace in st.session_state["fig_radar"].data:
-                name = trace.name
-                values = trace.r
-                radar_text.append(safe_ascii(f"{name}: {values}"))
+                name = safe_ascii(trace.name)
+                values = [round(v, 2) for v in trace.r]
+                radar_text.append(f"{name}: {values}")
 
-            # Gauge chart (plotly → image)
-            img_bytes_gauge = st.session_state["fig_gauge"].to_image(format="png", scale=2)
-            with open(gauge_path, "wb") as f:
-                f.write(img_bytes_gauge)
+            # Gauge chart (plotly → image using write_image)
+            try:
+                pio.write_image(st.session_state["fig_gauge"], gauge_path, format="png", scale=2)
+                gauge_available = True
+            except Exception as e:
+                st.warning("Gauge chart export failed, adding textual fallback.")
+                gauge_available = False
 
             # === PDF initialization ===
             pdf = FPDF()
@@ -390,16 +395,15 @@ with tab3:
             pdf.cell(0, 10, safe_ascii("Heart Disease Clinical Report"), ln=True, align="C")
             pdf.ln(10)
             pdf.set_font("Helvetica", "", 12)
-            input_data = st.session_state.get("input_dict", {})
             pdf.cell(0, 10, safe_ascii(f"Date: {datetime.today().strftime('%Y-%m-%d')}"), ln=True, align="C")
-            pdf.cell(0, 10, safe_ascii(f"Patient ID: {input_data.get('PatientID','N/A')}"), ln=True, align="C")
+            pdf.cell(0, 10, safe_ascii(f"Patient ID: {st.session_state['input_dict'].get('PatientID','N/A')}"), ln=True, align="C")
 
             # === 1️⃣ Patient Basic Info ===
             pdf.add_page()
             pdf.set_font("Helvetica", "B", 14)
             pdf.cell(0, 10, safe_ascii("Patient Basic Information"), ln=True)
             pdf.set_font("Helvetica", "", 12)
-            for k, v in input_data.items():
+            for k, v in st.session_state["input_dict"].items():
                 pdf.cell(0, 8, safe_ascii(f"{k}: {v}"), ln=True)
 
             # === 2️⃣ Current Symptoms ===
@@ -426,21 +430,22 @@ with tab3:
             pdf.cell(0, 10, safe_ascii("Prediction & Evaluation"), ln=True)
             pdf.set_font("Helvetica", "", 12)
             pred = st.session_state["pred"]
-            prob = st.session_state["prob"]
+            prob = st.session_state.get("prob")
             pdf.multi_cell(0, 8, safe_ascii(f"Prediction: {'HEART DISEASE DETECTED' if pred==1 else 'No Heart Disease'}"))
             if prob is not None:
                 pdf.cell(0, 8, safe_ascii(f"Probability (positive): {prob:.2%}"), ln=True)
 
             # === 5️⃣ Recommendations ===
-            pdf.add_page()
-            pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 10, safe_ascii("Doctor Recommendations"), ln=True)
-            pdf.set_font("Helvetica", "", 12)
-            for r in st.session_state["recs"]:
-                safe_r = safe_ascii(r).strip()
-                if not safe_r:
-                    safe_r = "Recommendation unavailable"
-                pdf.multi_cell(0, 6, safe_r, align="L")
+            if "recs" in st.session_state:
+                pdf.add_page()
+                pdf.set_font("Helvetica", "B", 14)
+                pdf.cell(0, 10, safe_ascii("Doctor Recommendations"), ln=True)
+                pdf.set_font("Helvetica", "", 12)
+                for r in st.session_state["recs"]:
+                    safe_r = safe_ascii(r).strip()
+                    if not safe_r:
+                        safe_r = "Recommendation unavailable"
+                    pdf.multi_cell(0, 6, safe_r, align="L")
 
             # === 6️⃣ Visualizations ===
             pdf.add_page()
@@ -451,16 +456,20 @@ with tab3:
             pdf.multi_cell(0, 6, safe_ascii("Figure 1: Electrocardiogram (ECG)."), align="C")
             pdf.ln(5)
             for rt in radar_text:
-                pdf.multi_cell(0, 6, rt)
+                pdf.multi_cell(0, 6, safe_ascii(rt))
             pdf.ln(5)
-            pdf.image(gauge_path, x=60, w=80)
-            pdf.multi_cell(0, 6, safe_ascii("Figure 2: Heart disease risk gauge."), align="C")
+            if gauge_available:
+                pdf.image(gauge_path, x=60, w=80)
+                pdf.multi_cell(0, 6, safe_ascii("Figure 2: Heart disease risk gauge."), align="C")
+            else:
+                pdf.multi_cell(0, 6, safe_ascii("Gauge chart unavailable, see risk probability above."), align="C")
 
             # === 7️⃣ Conclusion ===
             pdf.add_page()
             pdf.set_font("Helvetica", "B", 14)
             pdf.cell(0, 10, safe_ascii("Conclusion & Notes"), ln=True)
             pdf.set_font("Helvetica", "", 12)
+            input_data = st.session_state.get("input_dict", {})
             summary_lines = [
                 safe_ascii(f"Patient ID: {input_data.get('PatientID','N/A')}"),
                 safe_ascii(f"Age: {input_data.get('age','N/A')}, Sex: {'Male' if input_data.get('sex',0)==1 else 'Female'}"),
@@ -471,8 +480,9 @@ with tab3:
                 summary_lines.append(safe_ascii(f"Predicted Probability (positive): {prob:.2%}"))
             summary_lines.append("")
             summary_lines.append("Key Recommendations:")
-            for r in st.session_state["recs"]:
-                summary_lines.append("- " + safe_ascii(r))
+            if "recs" in st.session_state:
+                for r in st.session_state["recs"]:
+                    summary_lines.append("- " + safe_ascii(r))
 
             pdf.multi_cell(0, 6, "\n".join(summary_lines))
 
@@ -497,7 +507,9 @@ with tab3:
 
 
 
+
     
+
 
 
 
