@@ -255,11 +255,11 @@ with tab2:
     if "pred" not in st.session_state:
         st.info("⚠️ Run prediction first in Tab1.")
     else:
-        # Patient Info Cards (خلي الخط فاتح عشان الخلفية سودة)
+        # --- Patient Info Cards ---
         col1, col2 = st.columns(2)
         with col1:
             st.markdown(f"""
-                <div class="card" style="color:#f5f5f5; background:#1c1c1c;">
+                <div class="card" style="color:#f5f5f5; background:#1c1c1c; padding:10px; border-radius:10px;">
                     <h4>👤 Patient Info</h4>
                     <p><b>Age:</b> {age}</p>
                     <p><b>Sex:</b> {"Male" if sex==1 else "Female"}</p>
@@ -272,7 +272,7 @@ with tab2:
 
         with col2:
             st.markdown(f"""
-                <div class="card" style="color:#f5f5f5; background:#1c1c1c;">
+                <div class="card" style="color:#f5f5f5; background:#1c1c1c; padding:10px; border-radius:10px;">
                     <h4>📊 Risk Analysis</h4>
                     <p><b>Age Group:</b> {["Young","Middle","Old"][ag]}</p>
                     <p><b>Heart Rate Reserve:</b> {HRR}</p>
@@ -282,26 +282,29 @@ with tab2:
             """, unsafe_allow_html=True)
 
         st.markdown("### 📈 Visual Diagnostics")
-
         colA, colB = st.columns([2,1])
 
+        # --- High-Resolution ECG ---
         with colA:
-            # ECG-like Signal (خلي الخط فاتح)
-            t = np.linspace(0, 1, 500)
-            ecg = np.sin(5*2*np.pi*t) + 0.4*np.sin(15*2*np.pi*t) + 0.05*np.random.randn(len(t))
-            fig, ax = plt.subplots(figsize=(9,3))
-            ax.plot(t, ecg, color="#00ffcc", linewidth=1.5)  # لون سماوي فاتح
-            ax.set_facecolor("#000000")  # خلفية سوداء
+            t = np.linspace(0, 1, 2000)
+            ecg = (0.5*np.sin(2*np.pi*5*t) + 
+                   0.3*np.sin(2*np.pi*15*t) + 
+                   0.2*np.sin(2*np.pi*25*t) + 
+                   0.05*np.random.randn(len(t)))
+            fig, ax = plt.subplots(figsize=(12,3))
+            ax.plot(t, ecg, color="#00ffcc", linewidth=1.5)
+            ax.set_facecolor("#000000")
             ax.set_yticks([])
-            ax.set_title("🫀 Simulated ECG", fontsize=12, color="#00ffcc")
+            ax.set_title("🫀 Simulated ECG (High-Res)", fontsize=12, color="#00ffcc")
             st.pyplot(fig)
             st.session_state["fig_ecg"] = fig
 
+        # --- Gauge for Max HR ---
         with colB:
-            # Gauge for Max HR (ألوان فاتحة)
             fig_g = go.Figure(go.Indicator(
-                mode="gauge+number",
+                mode="gauge+number+delta",
                 value=thalach,
+                delta={'reference': 150, 'increasing': {'color': "#ffdd00"}},
                 gauge={
                     'axis': {'range': [40,220], 'tickcolor': "white"},
                     'bar': {'color': "#ff3366"},
@@ -310,7 +313,12 @@ with tab2:
                         {'range': [40,100], 'color': "#333333"},
                         {'range': [100,160], 'color': "#0055aa"},
                         {'range': [160,220], 'color': "#aa0033"}
-                    ]
+                    ],
+                    'threshold': {
+                        'line': {'color': "yellow", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 160
+                    }
                 },
                 number={'font': {'color': "white"}},
                 title={'text': "Max HR (bpm)", 'font': {'size': 16, 'color': "white"}}
@@ -319,15 +327,16 @@ with tab2:
             st.plotly_chart(fig_g, use_container_width=True)
             st.session_state["fig_gauge"] = fig_g
 
-        # Radar Chart (فاتح مع خلفية سودة)
+        # --- Radar Chart for Risk Profile ---
         categories = ["Age","BP","Chol","Oldpeak","RiskScore"]
         vals = [ag/2, bpc/3, cr/2, opr/2, min(rscore/5, 1.0)]
         vals = vals + [vals[0]]
         fig_radar = go.Figure(go.Scatterpolar(
             r=vals,
-            theta=categories+ [categories[0]],
+            theta=categories + [categories[0]],
             fill='toself',
-            line_color="#00ccff"
+            line_color="cyan",
+            opacity=0.7
         ))
         fig_radar.update_layout(
             title="🌀 Risk Profile Radar",
@@ -527,6 +536,7 @@ with tab3:
 
 
     
+
 
 
 
