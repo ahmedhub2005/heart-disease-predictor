@@ -357,127 +357,114 @@ with tab3:
             # --- Temporary images with unique names ---
             uid = str(uuid.uuid4())[:8]
             ecg_path = f"temp_ecg_{uid}.png"
+            radar_path = f"temp_radar_{uid}.png"
+            gauge_path = f"temp_gauge_{uid}.png"
 
-            # ECG (matplotlib only)
+            # ECG (matplotlib)
             st.session_state["fig_ecg"].savefig(ecg_path, bbox_inches="tight")
 
-            # --- Create PDF ---
+            # Radar chart (save as image)
+            st.session_state["fig_radar"].write_image(radar_path, format="png", scale=2)
+
+            # Gauge chart (plotly → png file)
+            img_bytes_gauge = st.session_state["fig_gauge"].to_image(format="png", scale=2)
+            with open(gauge_path, "wb") as f:
+                f.write(img_bytes_gauge)
+
+            # === PDF CREATION ===
             pdf = FPDF()
             pdf.set_auto_page_break(auto=True, margin=15)
-            pdf.add_page()
+            pdf.set_font("Helvetica", "", 12)
 
             # === Cover Page ===
-            pdf.set_font("Helvetica", "B", 26)
+            pdf.add_page()
+            pdf.set_fill_color(230, 240, 255)
+            pdf.rect(0, 0, pdf.w, pdf.h, style='F')
+            try:
+                pdf.image("logo.png", x=80, y=20, w=50)
+                pdf.ln(60)
+            except:
+                pdf.ln(50)
+            pdf.set_font("Helvetica", "B", 22)
             pdf.set_text_color(0, 51, 102)
             pdf.cell(0, 20, "Heart Disease Clinical Report", ln=True, align="C")
-            pdf.set_font("Helvetica", "", 16)
+            pdf.set_font("Helvetica", "", 14)
             pdf.set_text_color(0, 0, 0)
             pdf.cell(0, 10, "Comprehensive Analysis and Recommendations", ln=True, align="C")
             pdf.ln(20)
-            pdf.set_font("Helvetica", "", 14)
             pdf.cell(0, 10, f"Date: {datetime.today().strftime('%Y-%m-%d')}", ln=True, align="C")
             pdf.cell(0, 10, f"Patient ID: {st.session_state['input_dict'].get('PatientID','N/A')}", ln=True, align="C")
 
-            # === 1️⃣ Patient Basic Info ===
+            # === Patient Basic Info ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, "Patient Basic Information", ln=True)
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_fill_color(200, 230, 255)
+            pdf.cell(0, 12, "Patient Basic Information", ln=True, fill=True)
             pdf.ln(5)
             pdf.set_font("Helvetica", "", 12)
             for k, v in st.session_state["input_dict"].items():
-                pdf.cell(0, 8, f"{k}: {v}", ln=True)
+                safe_text = ''.join([c if ord(c) < 128 else ' ' for c in f"{k}: {v}"])
+                pdf.cell(0, 8, safe_text, ln=True)
             pdf.ln(5)
 
-            # === 2️⃣ Current Symptoms ===
-            if "symptoms_dict" in st.session_state:
-                pdf.add_page()
-                pdf.set_font("Helvetica", "B", 20)
-                pdf.cell(0, 12, "Current Symptoms", ln=True)
-                pdf.ln(5)
-                pdf.set_font("Helvetica", "", 12)
-                for symptom, value in st.session_state["symptoms_dict"].items():
-                    pdf.cell(0, 8, f"{symptom}: {value}", ln=True)
-                pdf.ln(5)
-
-            # === 3️⃣ Medical Tests ===
-            if "tests_dict" in st.session_state:
-                pdf.add_page()
-                pdf.set_font("Helvetica", "B", 20)
-                pdf.cell(0, 12, "Medical Tests & Results", ln=True)
-                pdf.ln(5)
-                pdf.set_font("Helvetica", "", 12)
-                for test, result in st.session_state["tests_dict"].items():
-                    pdf.cell(0, 8, f"{test}: {result['value']} (Normal: {result.get('normal','N/A')})", ln=True)
-                pdf.ln(5)
-
-            # === 4️⃣ Prediction ===
+            # === Prediction & Evaluation ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, "Prediction & Evaluation", ln=True)
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_fill_color(200, 200, 255)
+            pdf.cell(0, 12, "Prediction & Evaluation", ln=True, fill=True)
             pdf.ln(5)
+            pdf.set_font("Helvetica", "", 12)
             pred = st.session_state["pred"]
             prob = st.session_state["prob"]
-            color = (255, 0, 0) if pred == 1 else (0, 128, 0)
+            color = (255,0,0) if pred==1 else (0,128,0)
             pdf.set_text_color(*color)
             pdf.multi_cell(0, 8, f"Prediction: {'HEART DISEASE DETECTED' if pred==1 else 'No Heart Disease'}")
-            pdf.set_text_color(0, 0, 0)
+            pdf.set_text_color(0,0,0)
             if prob is not None:
                 pdf.cell(0, 8, f"Probability (positive): {prob:.2%}", ln=True)
             pdf.ln(5)
 
-            # === 5️⃣ Recommendations ===
-            pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, "Doctor Recommendations", ln=True)
+            # === Recommendations ===
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_fill_color(255, 230, 200)
+            pdf.cell(0, 12, "Doctor Recommendations", ln=True, fill=True)
             pdf.ln(3)
             pdf.set_font("Helvetica", "", 12)
             for r in st.session_state["recs"]:
-                safe_text = ''.join([c if ord(c) < 65536 else ' ' for c in r]).strip()
+                safe_text = ''.join([c if ord(c) < 128 else ' ' for c in r]).strip()
                 if not safe_text:
                     safe_text = "Recommendation unavailable"
-                for paragraph in safe_text.split('\n'):
-                    pdf.multi_cell(0, 6, paragraph, align="L")
+                pdf.multi_cell(0, 6, safe_text, align="L")
                 pdf.ln(2)
 
-            # === 6️⃣ Visuals ===
+            # === Visuals & Charts ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, "Clinical Visualizations", ln=True)
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_fill_color(220, 220, 255)
+            pdf.cell(0, 12, "Clinical Visualizations", ln=True, fill=True)
             pdf.ln(5)
 
-            # ECG image
             pdf.image(ecg_path, x=15, w=180)
             pdf.multi_cell(0, 6, "Figure 1: Electrocardiogram (ECG) showing heart rhythm.", align="C")
             pdf.ln(10)
-
-            # Radar values (instead of image)
-            pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 10, "Radar Chart Indicators", ln=True)
-            pdf.set_font("Helvetica", "", 12)
-            for trace in st.session_state["fig_radar"].data:
-                pdf.multi_cell(0, 8, f"{trace.name}: {trace.r}")
-            pdf.ln(5)
-
-            # Gauge values (instead of image)
-            pdf.set_font("Helvetica", "B", 14)
-            pdf.cell(0, 10, "Gauge Risk Score", ln=True)
-            pdf.set_font("Helvetica", "", 12)
-            gauge_val = st.session_state.get("pred", "N/A")
-            pdf.multi_cell(0, 8, f"Predicted Risk Score: {gauge_val}")
+            pdf.image(radar_path, x=15, w=180)
+            pdf.multi_cell(0, 6, "Figure 2: Radar chart of patient risk factors.", align="C")
+            pdf.ln(10)
+            pdf.image(gauge_path, x=60, w=80)
+            pdf.multi_cell(0, 6, "Figure 3: Heart disease risk gauge.", align="C")
             pdf.ln(10)
 
-            # === 7️⃣ Conclusion ===
+            # === Conclusion ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, "Conclusion & Notes", ln=True)
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.set_fill_color(255, 255, 200)
+            pdf.cell(0, 12, "Conclusion & Notes", ln=True, fill=True)
             pdf.ln(5)
             pdf.set_font("Helvetica", "", 12)
 
-            input_data = st.session_state.get("input_dict", {})
-            recs = st.session_state.get("recs", [])
-
             summary_lines = [
-                f"Patient ID: {input_data.get('PatientID','N/A')}",
-                f"Age: {input_data.get('age','N/A')}, Sex: {'Male' if input_data.get('sex',0)==1 else 'Female'}",
+                f"Patient ID: {st.session_state['input_dict'].get('PatientID','N/A')}",
+                f"Age: {st.session_state['input_dict'].get('age','N/A')}, Sex: {'Male' if st.session_state['input_dict'].get('sex',0)==1 else 'Female'}",
                 "",
                 f"Prediction Result: {'HEART DISEASE DETECTED' if pred==1 else 'No Heart Disease'}",
             ]
@@ -485,22 +472,24 @@ with tab3:
                 summary_lines.append(f"Predicted Probability (positive): {prob:.2%}")
             summary_lines.append("")
             summary_lines.append("Key Recommendations:")
-            for r in recs:
-                safe_text = ''.join([c if ord(c) < 65536 else ' ' for c in r]).strip()
+            for r in st.session_state["recs"]:
+                safe_text = ''.join([c if ord(c) < 128 else ' ' for c in r]).strip()
                 if not safe_text:
                     safe_text = "Recommendation unavailable"
                 summary_lines.append(f"- {safe_text}")
 
-            pdf.multi_cell(0, 6, "\n".join(summary_lines))
+            summary_text = "\n".join(summary_lines)
+            pdf.multi_cell(0, 6, summary_text)
             pdf.ln(5)
 
             # Save PDF
             out_file = f"heart_report_{uid}.pdf"
             pdf.output(out_file)
 
-            # Cleanup
-            if os.path.exists(ecg_path):
-                os.remove(ecg_path)
+            # Cleanup temporary images
+            for p in [ecg_path, radar_path, gauge_path]:
+                if os.path.exists(p):
+                    os.remove(p)
 
             with open(out_file, "rb") as f:
                 st.download_button("⬇️ Download PDF Report", f, file_name=out_file, mime="application/pdf")
@@ -512,7 +501,9 @@ with tab3:
 
 
 
+
     
+
 
 
 
