@@ -344,10 +344,10 @@ with tab2:
 
 
 with tab3:
-    st.subheader("📄 Export Professional Clinical Report (PDF)")
+    st.subheader("Export Professional Clinical Report (PDF)")
 
     if "pred" not in st.session_state:
-        st.info("⚠️ Run prediction first in Tab1.")
+        st.info("Run prediction first in Tab1.")
     else:
         if st.button("Export PDF Report"):
             from datetime import datetime
@@ -356,25 +356,17 @@ with tab3:
             from fpdf import FPDF
             import plotly.io as pio
 
-            # --- Helper function to clean text ---
+            # --- Helper function to clean non-ASCII characters ---
             def safe_ascii(text):
                 return ''.join([c if ord(c) < 128 else ' ' for c in str(text)])
 
             # --- Unique temp files ---
             uid = str(uuid.uuid4())[:8]
             ecg_path = f"temp_ecg_{uid}.png"
-            radar_path = f"temp_radar_{uid}.txt"
             gauge_path = f"temp_gauge_{uid}.png"
 
             # ECG
             st.session_state["fig_ecg"].savefig(ecg_path, bbox_inches="tight")
-
-            # Radar text
-            radar_text = []
-            for trace in st.session_state["fig_radar"].data:
-                name = safe_ascii(trace.name)
-                values = [round(v, 2) for v in trace.r]
-                radar_text.append(f"{name}: {values}")
 
             # Gauge
             try:
@@ -391,7 +383,7 @@ with tab3:
             # === Cover Page ===
             pdf.add_page()
             pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, safe_ascii("🏥 Heart Disease Clinical Report"), ln=True, align="C")
+            pdf.cell(0, 12, safe_ascii("Heart Disease Clinical Report"), ln=True, align="C")
             pdf.ln(10)
 
             pdf.set_font("Helvetica", "", 12)
@@ -407,7 +399,6 @@ with tab3:
             pdf.set_font("Helvetica", "B", 14)
             pdf.cell(0, 10, "Patient Basic Information", ln=True)
             pdf.set_font("Helvetica", "", 12)
-
             for k, v in st.session_state["input_dict"].items():
                 pdf.cell(60, 8, safe_ascii(f"{k}:"), border=0)
                 pdf.cell(0, 8, safe_ascii(str(v)), ln=True, border=0)
@@ -419,7 +410,7 @@ with tab3:
                 pdf.cell(0, 10, "Current Symptoms", ln=True)
                 pdf.set_font("Helvetica", "", 12)
                 for symptom, value in st.session_state["symptoms_dict"].items():
-                    pdf.multi_cell(0, 8, safe_ascii(f"• {symptom}: {value}"))
+                    pdf.multi_cell(0, 8, safe_ascii(f"- {symptom}: {value}"))
 
             # === Medical Tests ===
             if "tests_dict" in st.session_state:
@@ -428,7 +419,7 @@ with tab3:
                 pdf.cell(0, 10, "Medical Tests & Results", ln=True)
                 pdf.set_font("Helvetica", "", 12)
                 for test, result in st.session_state["tests_dict"].items():
-                    pdf.multi_cell(0, 8, safe_ascii(f"• {test}: {result['value']}  (Normal: {result.get('normal','N/A')})"))
+                    pdf.multi_cell(0, 8, safe_ascii(f"- {test}: {result['value']} (Normal: {result.get('normal','N/A')})"))
 
             # === Prediction ===
             pdf.add_page()
@@ -437,7 +428,7 @@ with tab3:
             pdf.set_font("Helvetica", "", 12)
             pred = st.session_state["pred"]
             prob = st.session_state.get("prob")
-            pdf.multi_cell(0, 8, safe_ascii(f"Prediction Result: {'⚠️ HEART DISEASE DETECTED' if pred==1 else '✅ No Heart Disease'}"))
+            pdf.multi_cell(0, 8, safe_ascii(f"Prediction Result: {'HEART DISEASE DETECTED' if pred==1 else 'No Heart Disease'}"))
             if prob is not None:
                 pdf.multi_cell(0, 8, safe_ascii(f"Predicted Probability: {prob:.2%}"))
 
@@ -449,20 +440,15 @@ with tab3:
                 pdf.set_font("Helvetica", "", 12)
                 for r in st.session_state["recs"]:
                     safe_r = safe_ascii(r).strip() or "Recommendation unavailable"
-                    pdf.multi_cell(0, 8, f"• {safe_r}")
+                    pdf.multi_cell(0, 8, f"- {safe_r}")
 
             # === Visualizations ===
             pdf.add_page()
             pdf.set_font("Helvetica", "B", 14)
             pdf.cell(0, 10, "Clinical Visualizations", ln=True)
             pdf.set_font("Helvetica", "", 12)
-
             pdf.image(ecg_path, x=15, w=180)
             pdf.multi_cell(0, 8, "Figure 1: Electrocardiogram (ECG).", align="C")
-            pdf.ln(5)
-
-            for rt in radar_text:
-                pdf.multi_cell(0, 8, safe_ascii(rt))
             pdf.ln(5)
 
             if gauge_available:
@@ -500,9 +486,10 @@ with tab3:
                     os.remove(p)
 
             with open(out_file, "rb") as f:
-                st.download_button("⬇️ Download PDF Report", f, file_name=out_file, mime="application/pdf")
+                st.download_button("Download PDF Report", f, file_name=out_file, mime="application/pdf")
 
-            st.success("✅ Professional clinical report generated successfully!")
+            st.success("Professional clinical report generated successfully!")
+
 
 
 
@@ -513,6 +500,7 @@ with tab3:
 
 
     
+
 
 
 
