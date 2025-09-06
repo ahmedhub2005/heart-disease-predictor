@@ -356,45 +356,50 @@ with tab3:
             from fpdf import FPDF
             import plotly.io as pio
 
-            # --- Helper function to clean non-ASCII characters ---
             def safe_ascii(text):
                 return ''.join([c if ord(c) < 128 else ' ' for c in str(text)])
 
-            # --- Unique temp files ---
+            # --- Temp files ---
             uid = str(uuid.uuid4())[:8]
             ecg_path = f"temp_ecg_{uid}.png"
             gauge_path = f"temp_gauge_{uid}.png"
 
-            # Save visualizations
             st.session_state["fig_ecg"].savefig(ecg_path, bbox_inches="tight")
             try:
                 pio.write_image(st.session_state["fig_gauge"], gauge_path, format="png", scale=2)
                 gauge_available = True
             except Exception:
-                st.warning("Gauge chart export failed, adding textual fallback.")
                 gauge_available = False
 
-            # === PDF initialization ===
-            pdf = FPDF()
+            class PDF(FPDF):
+                def footer(self):
+                    self.set_y(-15)
+                    self.set_font('Helvetica', 'I', 8)
+                    self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+            pdf = PDF()
             pdf.set_auto_page_break(auto=True, margin=15)
 
             # === Cover Page ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 20)
-            pdf.cell(0, 12, "Heart Disease Clinical Report", ln=True, align="C")
+            pdf.set_font("Helvetica", "B", 24)
+            pdf.cell(0, 20, "Heart Disease Clinical Report", ln=True, align="C")
             pdf.ln(10)
-            pdf.set_font("Helvetica", "", 12)
+            pdf.set_font("Helvetica", "", 14)
             pdf.cell(0, 10, f"Report Date: {datetime.today().strftime('%Y-%m-%d')}", ln=True, align="C")
             pdf.cell(0, 10, f"Patient ID: {st.session_state['input_dict'].get('PatientID','N/A')}", ln=True, align="C")
-            pdf.ln(10)
-            pdf.set_font("Helvetica", "I", 11)
+            pdf.ln(15)
+            pdf.set_font("Helvetica", "I", 12)
             pdf.multi_cell(0, 8, "This report is auto-generated and intended for clinical evaluation purposes only.", align="C")
+            pdf.ln(30)
+            pdf.set_font("Helvetica", "B", 16)
+            pdf.cell(0, 10, "Prepared by: Heart Disease Predictor System", ln=True, align="C")
 
             # === Patient Info Table ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_font("Helvetica", "B", 16)
             pdf.cell(0, 10, "Patient Basic Information", ln=True)
-            pdf.ln(2)
+            pdf.ln(3)
             pdf.set_font("Helvetica", "B", 12)
             pdf.cell(60, 8, "Attribute", border=1)
             pdf.cell(0, 8, "Value", border=1, ln=True)
@@ -406,7 +411,7 @@ with tab3:
             # === Symptoms ===
             if "symptoms_dict" in st.session_state:
                 pdf.add_page()
-                pdf.set_font("Helvetica", "B", 14)
+                pdf.set_font("Helvetica", "B", 16)
                 pdf.cell(0, 10, "Current Symptoms", ln=True)
                 pdf.ln(2)
                 pdf.set_font("Helvetica", "", 12)
@@ -416,7 +421,7 @@ with tab3:
             # === Medical Tests ===
             if "tests_dict" in st.session_state:
                 pdf.add_page()
-                pdf.set_font("Helvetica", "B", 14)
+                pdf.set_font("Helvetica", "B", 16)
                 pdf.cell(0, 10, "Medical Tests & Results", ln=True)
                 pdf.ln(2)
                 pdf.set_font("Helvetica", "", 12)
@@ -425,7 +430,7 @@ with tab3:
 
             # === Prediction ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_font("Helvetica", "B", 16)
             pdf.cell(0, 10, "Prediction & Evaluation", ln=True)
             pdf.ln(2)
             pdf.set_font("Helvetica", "", 12)
@@ -438,7 +443,7 @@ with tab3:
             # === Recommendations ===
             if "recs" in st.session_state:
                 pdf.add_page()
-                pdf.set_font("Helvetica", "B", 14)
+                pdf.set_font("Helvetica", "B", 16)
                 pdf.cell(0, 10, "Doctor Recommendations", ln=True)
                 pdf.ln(2)
                 pdf.set_font("Helvetica", "", 12)
@@ -448,14 +453,13 @@ with tab3:
 
             # === Visualizations ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_font("Helvetica", "B", 16)
             pdf.cell(0, 10, "Clinical Visualizations", ln=True)
             pdf.ln(2)
             pdf.set_font("Helvetica", "", 12)
             pdf.image(ecg_path, x=pdf.w/2 - 90, w=180)
             pdf.multi_cell(0, 8, "Figure 1: Electrocardiogram (ECG).", align="C")
             pdf.ln(5)
-
             if gauge_available:
                 pdf.image(gauge_path, x=pdf.w/2 - 40, w=80)
                 pdf.multi_cell(0, 8, "Figure 2: Heart disease risk gauge.", align="C")
@@ -464,9 +468,9 @@ with tab3:
 
             # === Conclusion ===
             pdf.add_page()
-            pdf.set_font("Helvetica", "B", 14)
+            pdf.set_font("Helvetica", "B", 16)
             pdf.cell(0, 10, "Conclusion & Notes", ln=True)
-            pdf.ln(2)
+            pdf.ln(3)
             pdf.set_font("Helvetica", "", 12)
             summary_lines = [
                 f"Patient ID: {st.session_state['input_dict'].get('PatientID','N/A')}",
@@ -482,7 +486,7 @@ with tab3:
                     summary_lines.append(f"- {safe_ascii(r)}")
             pdf.multi_cell(0, 8, "\n".join(summary_lines))
 
-            # Save PDF
+            # --- Save PDF ---
             out_file = f"heart_report_{uid}.pdf"
             pdf.output(out_file)
 
@@ -507,7 +511,9 @@ with tab3:
 
 
 
+
     
+
 
 
 
