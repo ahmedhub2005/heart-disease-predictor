@@ -6,6 +6,7 @@ import pickle
 import os
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import uuid
 from fpdf import FPDF
 # --- Custom UI ---
 st.markdown("""
@@ -543,6 +544,7 @@ with tab3:
 
 
     
+
 
 
 
